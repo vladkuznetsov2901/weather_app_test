@@ -1,6 +1,6 @@
 package com.example.weatherapptest.data.repository
 
-import com.example.weatherapptest.data.Api.Companion.retrofit
+import com.example.weatherapptest.data.api.Api.Companion.retrofit
 import com.example.weatherapptest.data.mappers.toDomain
 import com.example.weatherapptest.domain.models.CurrentWeather
 import com.example.weatherapptest.domain.models.Forecast

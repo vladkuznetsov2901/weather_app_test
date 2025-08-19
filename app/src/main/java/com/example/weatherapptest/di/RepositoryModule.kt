@@ -1,6 +1,8 @@
 package com.example.weatherapptest.di
 
+import com.example.weatherapptest.data.repository.CitiesRepositoryImpl
 import com.example.weatherapptest.data.repository.WeatherRepositoryImpl
+import com.example.weatherapptest.domain.repository.CitiesRepository
 import com.example.weatherapptest.domain.repository.WeatherRepository
 import dagger.Module
 import dagger.Provides
@@ -11,10 +13,14 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 class RepositoryModule {
 
-
     @Provides
     fun provideWeatherRepository() : WeatherRepository {
         return WeatherRepositoryImpl()
+    }
+
+    @Provides
+    fun provideCitiesRepository() : CitiesRepository {
+        return CitiesRepositoryImpl()
     }
 
 }

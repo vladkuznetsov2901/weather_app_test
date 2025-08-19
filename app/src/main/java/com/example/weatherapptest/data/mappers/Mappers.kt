@@ -1,7 +1,9 @@
 package com.example.weatherapptest.data.mappers
 
+import com.example.weatherapptest.data.models.CityDto
 import com.example.weatherapptest.data.models.CurrentWeatherDto
 import com.example.weatherapptest.data.models.ForecastDto
+import com.example.weatherapptest.domain.models.City
 import com.example.weatherapptest.domain.models.CurrentWeather
 import com.example.weatherapptest.domain.models.DailyForecast
 import com.example.weatherapptest.domain.models.Forecast
@@ -28,4 +30,15 @@ fun ForecastDto.toDomain(cityName: String): Forecast {
         cityName = cityName,
         daily = dailyForecasts
     )
+}
+
+fun CityDto.toDomain(): City {
+    return City(
+        name = name,
+        country = country
+    )
+}
+
+fun List<CityDto>.toDomain(): List<City> {
+    return map { it.toDomain() }
 }

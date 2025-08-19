@@ -2,9 +2,12 @@ package com.example.weatherapptest.presentation.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.weatherapptest.data.models.CityDto
+import com.example.weatherapptest.domain.models.City
 import com.example.weatherapptest.domain.models.CurrentWeather
 import com.example.weatherapptest.domain.models.Resource
 import com.example.weatherapptest.domain.usecases.GetCurrentWeatherUseCase
+import com.example.weatherapptest.domain.usecases.SearchCityUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +17,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val getCurrentWeatherUseCase: GetCurrentWeatherUseCase
+    private val getCurrentWeatherUseCase: GetCurrentWeatherUseCase,
+    private val searchCityUseCase: SearchCityUseCase
 ) : ViewModel() {
 
     private val _citiesWeather = MutableStateFlow<List<CurrentWeather>>(emptyList())
@@ -25,6 +29,9 @@ class MainViewModel @Inject constructor(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
+    private val _citySuggestions = MutableStateFlow<List<City>>(emptyList())
+    val citySuggestions: StateFlow<List<City>> = _citySuggestions
 
     private val baseCities = listOf("Moscow", "New York")
 
@@ -49,6 +56,27 @@ class MainViewModel @Inject constructor(
 
             _citiesWeather.value = citiesInfo
             _loading.value = false
+        }
+    }
+
+    fun searchCities(query: String) {
+        viewModelScope.launch {
+            if (query.isNotBlank()) {
+                val result = searchCityUseCase(query)
+                when (result) {
+                    is Resource.Success -> {
+                        result.data.let { _citySuggestions.value = result.data }
+                    }
+                    is Resource.Error -> {
+                        _error.value = result.message ?: "Unknown error"
+                    }
+
+                    is Resource.Loading<*> -> TODO()
+                }
+
+            } else {
+                _citySuggestions.value = emptyList()
+            }
         }
     }
 
