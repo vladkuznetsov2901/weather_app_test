@@ -1,5 +1,7 @@
 package com.example.weatherapptest.data
 
+import com.example.weatherapptest.data.models.CurrentWeatherDto
+import com.example.weatherapptest.data.models.ForecastDto
 import retrofit2.http.GET
 import retrofit2.http.Query
 
