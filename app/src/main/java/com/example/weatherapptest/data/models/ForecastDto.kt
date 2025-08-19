@@ -1,18 +1,36 @@
 package com.example.weatherapptest.data.models
 
 data class ForecastDto(
-    val daily: List<Daily>
+    val list: List<ForecastItemDto>,
+    val city: CityDto
 )
 
-data class Daily(
+data class ForecastItemDto(
     val dt: Long,
-    val temp: Temp,
-    val weather: List<Weather>
+    val main: MainDto,
+    val weather: List<WeatherDto>,
+    val wind: WindDto?,
+    val dt_txt: String
 )
 
-data class Temp(
-    val day: Double,
-    val min: Double,
-    val max: Double
+data class MainDto(
+    val temp: Double,
+    val feels_like: Double,
+    val temp_min: Double,
+    val temp_max: Double,
+    val pressure: Int,
+    val humidity: Int
 )
 
+data class WeatherDto(
+    val id: Int,
+    val main: String,
+    val description: String,
+    val icon: String
+)
+
+data class WindDto(
+    val speed: Double,
+    val deg: Long,
+    val gust: Double,
+)

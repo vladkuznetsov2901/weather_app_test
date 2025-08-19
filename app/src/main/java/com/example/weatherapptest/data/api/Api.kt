@@ -17,11 +17,10 @@ interface Api {
         @Query("units") units: String = "metric"
     ): CurrentWeatherDto
 
-    @GET("data/2.5/onecall")
+    @GET("data/2.5/forecast")
     suspend fun getForecast(
         @Query("lat") lat: Double,
         @Query("lon") lon: Double,
-        @Query("exclude") exclude: String = "minutely,hourly,alerts",
         @Query("appid") apiKey: String = API_KEY,
         @Query("units") units: String = "metric"
     ): ForecastDto

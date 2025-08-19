@@ -32,12 +32,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.example.weatherapptest.R
 import com.example.weatherapptest.domain.models.CurrentWeather
 import com.example.weatherapptest.presentation.viewmodels.MainViewModel
+import kotlin.math.roundToInt
 
 @Composable
 fun WeatherScreen(
+    navController: NavController,
     viewModel: MainViewModel = hiltViewModel()
 ) {
     val citiesWeather by viewModel.citiesWeather.collectAsState()
@@ -59,6 +62,8 @@ fun WeatherScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
+                .padding(top = 16.dp)
+
         ) {
 
             Row(
@@ -111,7 +116,9 @@ fun WeatherScreen(
 
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(citiesWeather) { city ->
-                    CityItem(city = city)
+                    CityItem(city = city, onCityClick = {
+                        navController.navigate("cityDetails/${city.cityName}")
+                    })
                     HorizontalDivider()
                 }
             }
@@ -139,15 +146,16 @@ fun WeatherScreen(
 }
 
 @Composable
-fun CityItem(city: CurrentWeather) {
+fun CityItem(city: CurrentWeather, onCityClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
+            .padding(vertical = 12.dp)
+            .clickable { onCityClick() },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = city.cityName, fontSize = 18.sp)
-        Text(text = "${city.temperature}°C", fontSize = 18.sp)
+        Text(text = "${city.temperature.roundToInt()}°C", fontSize = 18.sp)
     }
 }

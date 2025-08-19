@@ -3,4 +3,9 @@
     <string name="error_message">Ошибка загрузки! Повторите попытку позже!</string>
     <string name="enter_the_city">Введите город</string>
     <string name="plus">+</string>
+    <string name="three_days">3 дня</string>
+    <string name="seven_days">7 дней</string>
+    <string name="temperature_text">Температура: %1$s°C</string>
+    <string name="state_text">Состояние: %1$s</string>
+    <string name="back_text">Назад</string>
 </resources>

@@ -15,6 +15,7 @@ data class Weather(
     val description: String
 )
 
+
 data class Coord(
     val lat: Double,
     val lon: Double
