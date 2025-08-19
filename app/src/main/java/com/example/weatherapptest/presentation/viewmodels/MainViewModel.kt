@@ -6,10 +6,13 @@ import com.example.weatherapptest.data.models.CityDto
 import com.example.weatherapptest.domain.models.City
 import com.example.weatherapptest.domain.models.CurrentWeather
 import com.example.weatherapptest.domain.models.Resource
+import com.example.weatherapptest.domain.usecases.AddUserCityUseCase
 import com.example.weatherapptest.domain.usecases.GetCurrentWeatherUseCase
+import com.example.weatherapptest.domain.usecases.GetUserCitiesUseCase
 import com.example.weatherapptest.domain.usecases.SearchCityUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -18,7 +21,9 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val getCurrentWeatherUseCase: GetCurrentWeatherUseCase,
-    private val searchCityUseCase: SearchCityUseCase
+    private val searchCityUseCase: SearchCityUseCase,
+    private val getUserCitiesUseCase: GetUserCitiesUseCase,
+    private val addUserCityUseCase: AddUserCityUseCase
 ) : ViewModel() {
 
     private val _citiesWeather = MutableStateFlow<List<CurrentWeather>>(emptyList())
@@ -35,12 +40,18 @@ class MainViewModel @Inject constructor(
 
     private val baseCities = listOf("Moscow", "New York")
 
-    fun getBaseCities() {
+
+
+    fun getCitiesWeather() {
         viewModelScope.launch {
             _loading.value = true
             val citiesInfo = mutableListOf<CurrentWeather>()
 
-            for (city in baseCities) {
+            val userCities = getUserCitiesUseCase()
+
+            val allCities = baseCities + userCities.map { it.name }
+
+            for (city in allCities) {
                 when (val result = getCurrentWeatherUseCase(city)) {
                     is Resource.Success -> {
                         result.data.let { citiesInfo.add(it) }
@@ -77,6 +88,13 @@ class MainViewModel @Inject constructor(
             } else {
                 _citySuggestions.value = emptyList()
             }
+        }
+    }
+
+    fun addCity(city: String) {
+        viewModelScope.launch {
+            addUserCityUseCase(city)
+            getCitiesWeather()
         }
     }
 

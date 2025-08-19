@@ -51,7 +51,7 @@ fun WeatherScreen(
 
 
     LaunchedEffect(Unit) {
-        viewModel.getBaseCities()
+        viewModel.getCitiesWeather()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -97,8 +97,10 @@ fun WeatherScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(modifier = Modifier.fillMaxWidth(), onClick = {
                     if (newCity.isNotBlank()) {
-//                        viewModel.addCity(newCity)
+                        viewModel.addCity(newCity)
+                        query = ""
                         newCity = ""
+                        viewModel.getCitiesWeather()
                     }
                 }) {
                     Text(stringResource(R.string.plus))

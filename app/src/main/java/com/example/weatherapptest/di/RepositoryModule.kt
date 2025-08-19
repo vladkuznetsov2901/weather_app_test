@@ -1,5 +1,6 @@
 package com.example.weatherapptest.di
 
+import com.example.weatherapptest.data.db.CitiesDao
 import com.example.weatherapptest.data.repository.CitiesRepositoryImpl
 import com.example.weatherapptest.data.repository.WeatherRepositoryImpl
 import com.example.weatherapptest.domain.repository.CitiesRepository
@@ -19,8 +20,8 @@ class RepositoryModule {
     }
 
     @Provides
-    fun provideCitiesRepository() : CitiesRepository {
-        return CitiesRepositoryImpl()
+    fun provideCitiesRepository(citiesDao: CitiesDao) : CitiesRepository {
+        return CitiesRepositoryImpl(citiesDao)
     }
 
 }
