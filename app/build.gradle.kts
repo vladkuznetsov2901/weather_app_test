@@ -73,8 +73,9 @@ dependencies {
     implementation(libs.coil.network.okhttp)
 
     // hilt
-    implementation("com.google.dagger:hilt-android:2.56.2")
-    ksp("com.google.dagger:hilt-android-compiler:2.56.2")
+    implementation(libs.google.hilt.android)
+    ksp(libs.com.google.dagger.hilt.android.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
