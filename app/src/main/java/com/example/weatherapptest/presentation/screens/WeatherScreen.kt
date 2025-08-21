@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -44,8 +45,6 @@ fun WeatherScreen(
     viewModel: MainViewModel = hiltViewModel()
 ) {
     val citiesWeather by viewModel.citiesWeather.collectAsState()
-    val isLoading by viewModel.loading.collectAsState()
-    val error by viewModel.error.collectAsState()
     val suggestions by viewModel.citySuggestions.collectAsState()
 
     var newCity by remember { mutableStateOf("") }
@@ -61,9 +60,8 @@ fun WeatherScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .systemBarsPadding()
                 .padding(16.dp)
-                .padding(top = 16.dp)
-
         ) {
 
             Row(
@@ -100,7 +98,8 @@ fun WeatherScreen(
                     }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                Button(modifier = Modifier.fillMaxWidth(),
+                    onClick = {
                     if (newCity.isNotBlank()) {
                         viewModel.addCity(newCity)
                         query = ""
@@ -123,7 +122,7 @@ fun WeatherScreen(
                 }
             }
         }
-        if (isLoading) {
+        if (viewModel.loading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize(),
@@ -132,7 +131,7 @@ fun WeatherScreen(
                 CircularProgressIndicator()
             }
         }
-        error?.let { errorMessage ->
+        viewModel.error.let { errorMessage ->
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center

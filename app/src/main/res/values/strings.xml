@@ -8,4 +8,5 @@
     <string name="temperature_text">Температура: %1$s°C</string>
     <string name="state_text">Состояние: %1$s</string>
     <string name="back_text">Назад</string>
+    <string name="count_days_text">%1$d дня</string>
 </resources>

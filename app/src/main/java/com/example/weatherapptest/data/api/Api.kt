@@ -33,7 +33,7 @@ interface Api {
     ): List<CityDto>
 
     companion object {
-        private val API_KEY = "4153b10d9256fb388c24a24e0b8f7a40"
+        private const val API_KEY = "4153b10d9256fb388c24a24e0b8f7a40"
 
         val retrofit: Api by lazy {
             Retrofit.Builder()

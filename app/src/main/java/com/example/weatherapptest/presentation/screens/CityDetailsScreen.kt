@@ -9,12 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +52,8 @@ fun CityDetailsScreen(
     val city by viewModel.cityWeatherByName.collectAsState(initial = null)
     val forecast by viewModel.forecastByCity.collectAsState()
 
+    val daysNumbers = listOf(3, 7)
+
     LaunchedEffect(Unit) {
         viewModel.getCityWeatherByName(cityName)
     }
@@ -61,6 +67,7 @@ fun CityDetailsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .systemBarsPadding()
             .padding(16.dp)
     ) {
         CityHeader(
@@ -71,7 +78,7 @@ fun CityDetailsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        DaysSelector(daysToShow) { daysToShow = it }
+        DaysSelector(daysNumbers, daysToShow) { daysToShow = it }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -109,13 +116,16 @@ fun CityHeader(cityName: String, temperature: Int?, description: String?) {
 }
 
 @Composable
-fun DaysSelector(daysToShow: Int, onChange: (Int) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = { onChange(3) }) {
-            Text(stringResource(R.string.three_days))
-        }
-        Button(onClick = { onChange(7) }) {
-            Text(stringResource(R.string.seven_days))
+fun DaysSelector(daysNumbers: List<Int>, selectedIndex: Int, onChange: (Int) -> Unit) {
+    SingleChoiceSegmentedButtonRow {
+        daysNumbers.forEachIndexed { index, label ->
+            SegmentedButton(
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = daysNumbers.size),
+                onClick = { onChange(label) },
+                selected = index == selectedIndex,
+            ) {
+                Text(stringResource(R.string.count_days_text, label))
+            }
         }
     }
 }

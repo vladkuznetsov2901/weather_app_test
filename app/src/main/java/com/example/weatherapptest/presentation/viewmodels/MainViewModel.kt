@@ -1,5 +1,9 @@
 package com.example.weatherapptest.presentation.viewmodels
 
+import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapptest.data.models.Coord
@@ -32,14 +36,14 @@ class MainViewModel @Inject constructor(
     val citiesWeather: StateFlow<List<CurrentWeather>> = _citiesWeather
 
     private val _cityWeatherByName =
-        MutableStateFlow<CurrentWeather>(CurrentWeather("", 0.0, Coord(0.0, 0.0), ""))
+        MutableStateFlow(CurrentWeather("", 0.0, Coord(0.0, 0.0), ""))
     val cityWeatherByName: StateFlow<CurrentWeather> = _cityWeatherByName
 
-    private val _loading = MutableStateFlow(false)
-    val loading: StateFlow<Boolean> = _loading
+    var loading by mutableStateOf(false)
+        private set
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
+    var error by mutableStateOf<String?>(null)
+        private set
 
     private val _citySuggestions = MutableStateFlow<List<City>>(emptyList())
     val citySuggestions: StateFlow<List<City>> = _citySuggestions
@@ -51,7 +55,7 @@ class MainViewModel @Inject constructor(
 
     fun getCitiesWeather() {
         viewModelScope.launch {
-            _loading.value = true
+            loading = true
             val citiesInfo = mutableListOf<CurrentWeather>()
 
             val userCities = getUserCitiesUseCase()
@@ -66,17 +70,17 @@ class MainViewModel @Inject constructor(
                     }
 
                     is Resource.Error -> {
-                        _error.value = result.message
+                        error = result.message
                     }
 
                     is Resource.Loading -> {
-                        _loading.value = true
+                        loading = true
                     }
                 }
             }
 
             _citiesWeather.value = citiesInfo
-            _loading.value = false
+            loading = false
         }
     }
 
@@ -85,29 +89,29 @@ class MainViewModel @Inject constructor(
             val result = getCurrentWeatherUseCase(cityName)
             if (result is Resource.Success) {
                 _cityWeatherByName.value = result.data
-                println("LOG: City loaded -> ${result.data}")
+                Log.d("LOG", "City loaded -> ${result.data}")
+
             } else {
-                println("LOG: Failed to load city")
+                Log.d("LOG","LOG: Failed to load city")
             }
         }
     }
 
     fun getForecastByCity(cityName: String, lat: Double, lon: Double) {
         viewModelScope.launch {
-            println("LOG: Requesting forecast for $cityName at ($lat, $lon)")
             val result = getForecastUseCase(cityName, lat, lon)
             when (result) {
                 is Resource.Success -> {
-                    println("LOG: Forecast loaded -> ${result.data}")
+                    Log.d("LOG", "City loaded -> ${result.data}")
                     _forecastByCity.value = result.data
                 }
 
                 is Resource.Error -> {
-                    println("LOG: Forecast error -> ${result.message}")
+                    Log.d("LOG","Forecast error -> ${result.message}")
                 }
 
                 else -> {
-                    println("LOG: Forecast unknown result -> $result")
+                    Log.d("LOG","Forecast unknown result -> $result")
                 }
             }
         }
@@ -124,11 +128,11 @@ class MainViewModel @Inject constructor(
                     }
 
                     is Resource.Error -> {
-                        _error.value = result.message
+                        error = result.message
                     }
 
                     is Resource.Loading -> {
-                        _loading.value = true
+                        loading = true
                     }
                 }
 
