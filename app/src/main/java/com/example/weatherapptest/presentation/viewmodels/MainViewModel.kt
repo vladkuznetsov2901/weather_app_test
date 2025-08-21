@@ -73,8 +73,11 @@ class MainViewModel @Inject constructor(
         for (city in allCities) {
             when (val result = getCurrentWeatherUseCase(city)) {
                 is Resource.Success -> citiesInfo.add(result.data)
-                is Resource.Error -> emit(Resource.Error(result.message))
-                is Resource.Loading<*> -> {}
+                is Resource.Error -> {
+                    emit(Resource.Error(result.message))
+                    return@flow
+                }
+                is Resource.Loading<*> -> emit(Resource.Loading())
             }
         }
 
