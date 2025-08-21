@@ -9,7 +9,7 @@ class GetUserCitiesUseCase @Inject constructor(
     private val citiesRepository: CitiesRepository
 ) {
 
-    suspend operator fun invoke(): List<CityEntity> {
+    operator fun invoke(): Flow<List<CityEntity>> {
         return citiesRepository.getUserCities()
     }
 

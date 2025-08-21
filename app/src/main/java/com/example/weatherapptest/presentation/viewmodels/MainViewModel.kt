@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.weatherapptest.data.db.CityEntity
 import com.example.weatherapptest.data.models.Coord
 import com.example.weatherapptest.domain.models.City
 import com.example.weatherapptest.domain.models.CurrentWeather
@@ -17,8 +18,11 @@ import com.example.weatherapptest.domain.usecases.GetForecastUseCase
 import com.example.weatherapptest.domain.usecases.GetUserCitiesUseCase
 import com.example.weatherapptest.domain.usecases.SearchCityUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,12 +36,17 @@ class MainViewModel @Inject constructor(
     private val addUserCityUseCase: AddUserCityUseCase
 ) : ViewModel() {
 
-    private val _citiesWeather = MutableStateFlow<List<CurrentWeather>>(emptyList())
-    val citiesWeather: StateFlow<List<CurrentWeather>> = _citiesWeather
+    val userCities: Flow<List<CityEntity>> = getUserCitiesUseCase()
 
-    private val _cityWeatherByName =
-        MutableStateFlow(CurrentWeather("", 0.0, Coord(0.0, 0.0), ""))
-    val cityWeatherByName: StateFlow<CurrentWeather> = _cityWeatherByName
+    val citiesWeather: Flow<Resource<List<CurrentWeather>>> = getCitiesWeatherFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Lazily,
+            initialValue = Resource.Loading()
+        )
+
+
+    val cityWeatherByName: Flow<CurrentWeather> = getCityWeatherByName("")
 
     var loading by mutableStateOf(false)
         private set
@@ -45,107 +54,87 @@ class MainViewModel @Inject constructor(
     var error by mutableStateOf<String?>(null)
         private set
 
-    private val _citySuggestions = MutableStateFlow<List<City>>(emptyList())
-    val citySuggestions: StateFlow<List<City>> = _citySuggestions
+    val forecast: Flow<Forecast?>
+        get() = getForecastByCity(cityName = "", lat = 0.0, lon = 0.0)
 
-    private val _forecastByCity = MutableStateFlow<Forecast?>(null)
-    val forecastByCity: StateFlow<Forecast?> = _forecastByCity
+    val citySuggestions: Flow<List<City>>
+        get() = searchCities(query = "")
+
 
     private val baseCities = listOf("Moscow", "New York")
 
-    fun getCitiesWeather() {
-        viewModelScope.launch {
-            loading = true
-            val citiesInfo = mutableListOf<CurrentWeather>()
+    fun getCitiesWeatherFlow(): Flow<Resource<List<CurrentWeather>>> = flow {
+        emit(Resource.Loading())
 
-            val userCities = getUserCitiesUseCase()
+        val citiesList = userCities.first()
+        val allCities = baseCities + citiesList.map { it.name }
 
-            val allCities = baseCities + userCities.map { it.name }
-
-            for (city in allCities) {
-                val result = getCurrentWeatherUseCase(city)
-                when (result) {
-                    is Resource.Success -> {
-                        result.data.let { citiesInfo.add(it) }
-                    }
-
-                    is Resource.Error -> {
-                        error = result.message
-                    }
-
-                    is Resource.Loading -> {
-                        loading = true
-                    }
-                }
+        val citiesInfo = mutableListOf<CurrentWeather>()
+        for (city in allCities) {
+            when (val result = getCurrentWeatherUseCase(city)) {
+                is Resource.Success -> citiesInfo.add(result.data)
+                is Resource.Error -> emit(Resource.Error(result.message))
+                is Resource.Loading<*> -> {}
             }
+        }
 
-            _citiesWeather.value = citiesInfo
-            loading = false
+        emit(Resource.Success(citiesInfo))
+    }
+
+
+
+    fun getCityWeatherByName(cityName: String): Flow<CurrentWeather> = flow {
+        emit(CurrentWeather("", 0.0, Coord(0.0, 0.0), ""))
+        when (val result = getCurrentWeatherUseCase(cityName)) {
+            is Resource.Success -> emit(result.data)
+            is Resource.Error -> {
+                error = result.message
+            }
+            is Resource.Loading<*> -> {
+                loading = true
+            }
         }
     }
 
-    fun getCityWeatherByName(cityName: String) {
-        viewModelScope.launch {
-            val result = getCurrentWeatherUseCase(cityName)
-            if (result is Resource.Success) {
-                _cityWeatherByName.value = result.data
+
+    fun getForecastByCity(cityName: String, lat: Double, lon: Double): Flow<Forecast?> = flow {
+        emit(null)
+        when (val result = getForecastUseCase(cityName, lat, lon)) {
+            is Resource.Success -> {
                 Log.d("LOG", "City loaded -> ${result.data}")
-
-            } else {
-                Log.d("LOG","LOG: Failed to load city")
+                emit(result.data)
+            }
+            is Resource.Error -> {
+                Log.d("LOG", "Forecast error -> ${result.message}")
+                error = result.message
+            }
+            else -> {
+                Log.d("LOG", "Forecast unknown result -> $result")
             }
         }
     }
 
-    fun getForecastByCity(cityName: String, lat: Double, lon: Double) {
-        viewModelScope.launch {
-            val result = getForecastUseCase(cityName, lat, lon)
-            when (result) {
-                is Resource.Success -> {
-                    Log.d("LOG", "City loaded -> ${result.data}")
-                    _forecastByCity.value = result.data
-                }
 
+    fun searchCities(query: String): Flow<List<City>> = flow {
+        if (query.isNotBlank()) {
+            when (val result = searchCityUseCase(query)) {
+                is Resource.Success -> emit(result.data)
                 is Resource.Error -> {
-                    Log.d("LOG","Forecast error -> ${result.message}")
+                    error = result.message
+                    emit(emptyList())
                 }
-
-                else -> {
-                    Log.d("LOG","Forecast unknown result -> $result")
-                }
+                is Resource.Loading -> loading = true
             }
+        } else {
+            emit(emptyList())
         }
     }
 
-
-    fun searchCities(query: String) {
-        viewModelScope.launch {
-            if (query.isNotBlank()) {
-                val result = searchCityUseCase(query)
-                when (result) {
-                    is Resource.Success -> {
-                        result.data.let { _citySuggestions.value = result.data }
-                    }
-
-                    is Resource.Error -> {
-                        error = result.message
-                    }
-
-                    is Resource.Loading -> {
-                        loading = true
-                    }
-                }
-
-            } else {
-                _citySuggestions.value = emptyList()
-            }
-        }
-    }
 
     fun addCity(city: String) {
         viewModelScope.launch {
             addUserCityUseCase(city)
-            getCitiesWeather()
+            getCitiesWeatherFlow()
         }
     }
 
