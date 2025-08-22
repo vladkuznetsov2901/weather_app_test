@@ -2,6 +2,7 @@ package com.example.weatherapptest.presentation.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,12 +10,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -44,9 +50,11 @@ fun CityDetailsScreen(
     viewModel: MainViewModel = hiltViewModel(),
     navController: NavController
 ) {
-    var daysToShow by remember { mutableIntStateOf(3) }
+    var daysToShow by remember { mutableIntStateOf(7) }
     val city by viewModel.cityWeatherByName.collectAsState(initial = null)
-    val forecast by viewModel.forecastByCity.collectAsState()
+    val forecast by viewModel.forecast.collectAsState(initial = null)
+
+    val daysNumbers = listOf(3, 7)
 
     LaunchedEffect(Unit) {
         viewModel.getCityWeatherByName(cityName)
@@ -58,39 +66,44 @@ fun CityDetailsScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
+            .systemBarsPadding()
             .padding(16.dp)
     ) {
-        CityHeader(
-            cityName = cityName,
-            temperature = city?.temperature?.roundToInt(),
-            description = city?.description
-        )
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            CityHeader(
+                cityName = cityName,
+                temperature = city?.temperature?.roundToInt(),
+                description = city?.description
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        DaysSelector(daysToShow) { daysToShow = it }
+            DaysSelector(daysNumbers, daysToShow) { daysToShow = it }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        forecast?.daily?.take(daysToShow)?.let { dailyList ->
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                modifier = Modifier.fillMaxSize()
             ) {
-                items(dailyList) { day ->
+                items(forecast?.daily?.take(daysToShow) ?: emptyList()) { day ->
                     DailyForecastItem(day)
                 }
             }
         }
 
-        Button(onClick = { navController.popBackStack() }) {
+        Button(
+            onClick = { navController.popBackStack() },
+            modifier = Modifier.align(Alignment.BottomStart)
+        ) {
             Text(stringResource(R.string.back_text))
         }
     }
+
 }
 
 
@@ -109,13 +122,20 @@ fun CityHeader(cityName: String, temperature: Int?, description: String?) {
 }
 
 @Composable
-fun DaysSelector(daysToShow: Int, onChange: (Int) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = { onChange(3) }) {
-            Text(stringResource(R.string.three_days))
-        }
-        Button(onClick = { onChange(7) }) {
-            Text(stringResource(R.string.seven_days))
+fun DaysSelector(daysNumbers: List<Int>, selectedIndex: Int, onChange: (Int) -> Unit) {
+    SingleChoiceSegmentedButtonRow {
+        daysNumbers.forEachIndexed { index, label ->
+            SegmentedButton(
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = daysNumbers.size),
+                onClick = { onChange(label) },
+                selected = label == selectedIndex,
+            ) {
+                when (label) {
+                    3 -> Text(stringResource(R.string.count_days_text, label))
+                    7 -> Text(stringResource(R.string.count_days_text2, label))
+                }
+
+            }
         }
     }
 }

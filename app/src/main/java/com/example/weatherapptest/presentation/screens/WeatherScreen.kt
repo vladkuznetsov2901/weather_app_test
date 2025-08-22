@@ -1,6 +1,5 @@
 package com.example.weatherapptest.presentation.screens
 
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,12 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -35,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.weatherapptest.R
 import com.example.weatherapptest.domain.models.CurrentWeather
+import com.example.weatherapptest.domain.models.Resource
 import com.example.weatherapptest.presentation.viewmodels.MainViewModel
 import kotlin.math.roundToInt
 
@@ -43,10 +43,11 @@ fun WeatherScreen(
     navController: NavController,
     viewModel: MainViewModel = hiltViewModel()
 ) {
-    val citiesWeather by viewModel.citiesWeather.collectAsState()
-    val isLoading by viewModel.loading.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val suggestions by viewModel.citySuggestions.collectAsState()
+    val citiesWeatherResource by viewModel.citiesWeather.collectAsState(
+        initial = Resource.Loading()
+    )
+
+    val suggestions by viewModel.citySuggestions.collectAsState(initial = emptyList())
 
     var newCity by remember { mutableStateOf("") }
     var query by remember { mutableStateOf("") }
@@ -54,16 +55,15 @@ fun WeatherScreen(
 
 
     LaunchedEffect(Unit) {
-        viewModel.getCitiesWeather()
+        viewModel.getCitiesWeatherFlow()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .systemBarsPadding()
                 .padding(16.dp)
-                .padding(top = 16.dp)
-
         ) {
 
             Row(
@@ -100,46 +100,48 @@ fun WeatherScreen(
                     }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Button(modifier = Modifier.fillMaxWidth(), onClick = {
-                    if (newCity.isNotBlank()) {
-                        viewModel.addCity(newCity)
-                        query = ""
-                        newCity = ""
-                        viewModel.getCitiesWeather()
-                    }
-                }) {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        if (newCity.isNotBlank()) {
+                            viewModel.addCity(newCity)
+                            query = ""
+                            newCity = ""
+                            viewModel.getCitiesWeatherFlow()
+                        }
+                    }) {
                     Text(stringResource(R.string.plus))
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(citiesWeather) { city ->
-                    CityItem(city = city, onCityClick = {
-                        navController.navigate("cityDetails/${city.cityName}")
-                    })
-                    HorizontalDivider()
+            when (val resource = citiesWeatherResource) {
+                is Resource.Loading -> Box(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+                is Resource.Success -> {
+                    LazyColumn {
+                        items(resource.data) { city ->
+                            CityItem(city, onCityClick = {
+                                navController.navigate("cityDetails/${city.cityName}")
+                            })
+                        }
+                    }
+                }
+
+                is Resource.Error -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = stringResource(R.string.error_message))
                 }
             }
-        }
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-        error?.let { errorMessage ->
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = stringResource(R.string.error_message))
-                Log.d("WeatherScreen", "WeatherScreen: $errorMessage")
-            }
+
         }
 
     }

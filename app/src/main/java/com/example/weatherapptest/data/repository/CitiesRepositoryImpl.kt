@@ -4,7 +4,6 @@ import com.example.weatherapptest.data.api.Api.Companion.retrofit
 import com.example.weatherapptest.data.db.CitiesDao
 import com.example.weatherapptest.data.db.CityEntity
 import com.example.weatherapptest.data.mappers.toDomain
-import com.example.weatherapptest.data.models.CityDto
 import com.example.weatherapptest.domain.models.City
 import com.example.weatherapptest.domain.repository.CitiesRepository
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +12,10 @@ import javax.inject.Inject
 class CitiesRepositoryImpl @Inject constructor(
     private val citiesDao: CitiesDao
 ) : CitiesRepository {
+
+    private val lock = Any()
+
+
     override suspend fun searchCity(city: String): List<City> {
         val dto = retrofit.searchCities(city)
         return dto.toDomain()
@@ -20,10 +23,12 @@ class CitiesRepositoryImpl @Inject constructor(
 
     override suspend fun addUserCity(city: String) {
         val cityEntity = CityEntity(name = city)
-        citiesDao.insertCity(cityEntity)
+        synchronized(lock) {
+            citiesDao.insertCity(cityEntity)
+        }
     }
 
-    override suspend fun getUserCities(): List<CityEntity> {
-        return citiesDao.getUserCities()
+    override fun getUserCities(): Flow<List<CityEntity>> {
+        return synchronized(lock) { citiesDao.getUserCities() }
     }
 }

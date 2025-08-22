@@ -4,14 +4,14 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.weatherapptest.domain.models.City
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CitiesDao {
 
     @Query("SELECT * FROM cities")
-    suspend fun getUserCities(): List<CityEntity>
+    fun getUserCities(): Flow<List<CityEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCity(city: CityEntity)
+    fun insertCity(city: CityEntity)
 }

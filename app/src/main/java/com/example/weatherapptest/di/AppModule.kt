@@ -15,15 +15,20 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 class AppModule {
 
+    @Volatile
+    private var instance: AppDatabase? = null
+    private val lock = Any()
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        return Room.databaseBuilder(
-            context,
-            AppDatabase::class.java,
-            "app_database"
-        )
-            .build()
+        return instance ?: synchronized(lock) {
+            instance ?: Room.databaseBuilder(
+                context.applicationContext,
+                AppDatabase::class.java,
+                "app_database"
+            ).build().also { instance = it }
+        }
     }
 
     @Provides
