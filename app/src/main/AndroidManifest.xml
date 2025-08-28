@@ -21,6 +21,7 @@
         tools:targetApi="33">
         <activity
             android:name=".presentation.MainActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true"
             android:theme="@style/Theme.WeatherAppTest">
             <intent-filter>

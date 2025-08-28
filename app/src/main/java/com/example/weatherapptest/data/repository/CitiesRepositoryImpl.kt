@@ -6,7 +6,9 @@ import com.example.weatherapptest.data.db.CityEntity
 import com.example.weatherapptest.data.mappers.toDomain
 import com.example.weatherapptest.domain.models.City
 import com.example.weatherapptest.domain.repository.CitiesRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class CitiesRepositoryImpl @Inject constructor(
@@ -23,10 +25,11 @@ class CitiesRepositoryImpl @Inject constructor(
 
     override suspend fun addUserCity(city: String) {
         val cityEntity = CityEntity(name = city)
-        synchronized(lock) {
+        withContext(Dispatchers.IO) {
             citiesDao.insertCity(cityEntity)
         }
     }
+
 
     override fun getUserCities(): Flow<List<CityEntity>> {
         return synchronized(lock) { citiesDao.getUserCities() }

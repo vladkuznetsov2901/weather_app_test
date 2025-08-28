@@ -9,7 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
@@ -17,13 +17,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.weatherapptest.domain.models.AuthState
 import com.example.weatherapptest.presentation.screens.CityDetailsScreen
+import com.example.weatherapptest.presentation.screens.OtpScreen
 import com.example.weatherapptest.presentation.screens.PhoneLoginScreen
 import com.example.weatherapptest.presentation.screens.WeatherScreen
 import com.example.weatherapptest.presentation.viewmodels.AuthViewModel
 import com.example.weatherapptest.ui.theme.WeatherAppTestTheme
 import dagger.hilt.android.AndroidEntryPoint
-import androidx.compose.runtime.getValue
-import com.example.weatherapptest.presentation.screens.OtpScreen
+import kotlinx.coroutines.launch
 
 
 @AndroidEntryPoint
@@ -48,24 +48,18 @@ class MainActivity : ComponentActivity() {
 fun AppContent(authViewModel: AuthViewModel = hiltViewModel()) {
 
     val navController = rememberNavController()
-    val authState by authViewModel.state.collectAsState()
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
+
+    LaunchedEffect(authViewModel.phoneAdd) {
         authViewModel.checkAccount()
-    }
-
-    LaunchedEffect(authState) {
-        when (authState) {
-            is AuthState.NoAccount -> navController.navigate("phoneLogin") {
-                popUpTo(0)
+            .collect { authState ->
+                when (authState) {
+                    is AuthState.NoAccount -> navController.navigate("phoneLogin") { popUpTo(0) }
+                    is AuthState.LoggedIn -> navController.navigate("weatherScreen") { popUpTo(0) }
+                    is AuthState.WaitingOtp -> navController.navigate("otpScreen") { popUpTo(0) }
+                }
             }
-            is AuthState.LoggedIn -> navController.navigate("weatherScreen") {
-                popUpTo(0)
-            }
-            is AuthState.WaitingOtp -> navController.navigate("otpScreen") {
-                popUpTo(0)
-            }
-        }
     }
 
     NavHost(navController = navController, startDestination = "splashScreen") {
@@ -73,15 +67,28 @@ fun AppContent(authViewModel: AuthViewModel = hiltViewModel()) {
         composable("phoneLogin") {
             PhoneLoginScreen(
                 onLoginClick = { phone ->
-                    authViewModel.addPhoneNumber(phone)
+                    scope.launch {
+                        authViewModel.addPhoneNumber(phone).collect { state ->
+                            if (state is AuthState.WaitingOtp) {
+                                navController.navigate("otpScreen") { popUpTo(0) }
+                            }
+                        }
+                    }
                 }
             )
         }
 
+
         composable("otpScreen") {
             OtpScreen(
                 onOtpEntered = { otp ->
-                    authViewModel.verifyOtp(otp)
+                    scope.launch {
+                        authViewModel.verifyOtp(otp).collect { state ->
+                            if (state is AuthState.LoggedIn) {
+                                navController.navigate("weatherScreen") { popUpTo(0) }
+                            }
+                        }
+                    }
                 }
             )
         }

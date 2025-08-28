@@ -23,9 +23,9 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.weatherapptest.R
+import com.example.weatherapptest.domain.models.CurrentWeather
 import com.example.weatherapptest.domain.models.DailyForecast
 import com.example.weatherapptest.presentation.viewmodels.MainViewModel
 import java.text.SimpleDateFormat
@@ -51,18 +52,16 @@ fun CityDetailsScreen(
     navController: NavController
 ) {
     var daysToShow by remember { mutableIntStateOf(7) }
-    val city by viewModel.cityWeatherByName.collectAsState(initial = null)
-    val forecast by viewModel.forecast.collectAsState(initial = null)
+    var city by remember { mutableStateOf<CurrentWeather?>(null) }
+    var forecast by remember { mutableStateOf<List<DailyForecast>?>(null) }
 
     val daysNumbers = listOf(3, 7)
 
-    LaunchedEffect(Unit) {
-        viewModel.getCityWeatherByName(cityName)
-    }
-
-    LaunchedEffect(city) {
-        city?.let { weather ->
+    LaunchedEffect(cityName) {
+        viewModel.getCityWeatherByName(cityName).collect { weather ->
+            city = weather
             viewModel.getForecastByCity(cityName, weather.coord.lat, weather.coord.lon)
+                .collect { forecast = it?.daily }
         }
     }
 
@@ -90,10 +89,11 @@ fun CityDetailsScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(forecast?.daily?.take(daysToShow) ?: emptyList()) { day ->
+                items(forecast?.take(daysToShow) ?: emptyList()) { day ->
                     DailyForecastItem(day)
                 }
             }
+
         }
 
         Button(
@@ -133,6 +133,7 @@ fun DaysSelector(daysNumbers: List<Int>, selectedIndex: Int, onChange: (Int) -> 
                 when (label) {
                     3 -> Text(stringResource(R.string.count_days_text, label))
                     7 -> Text(stringResource(R.string.count_days_text2, label))
+                    else -> Text(stringResource(R.string.label_days, label))
                 }
 
             }

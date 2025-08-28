@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -22,20 +23,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.weatherapptest.R
+import com.example.weatherapptest.features.PhoneVisualTransformation
+import com.example.weatherapptest.presentation.viewmodels.AuthViewModel
 
 @Composable
 fun PhoneLoginScreen(
+    authViewModel: AuthViewModel = hiltViewModel(),
     onLoginClick: (String) -> Unit
 ) {
     var phone by remember { mutableStateOf("") }
-
     var isValid by remember { mutableStateOf(true) }
-
-    fun validatePhone(input: String): Boolean {
-        val regex = Regex("^(\\+7|8)\\d{10}$")
-        return regex.matches(input)
-    }
 
     Box(
         modifier = Modifier
@@ -43,7 +42,7 @@ fun PhoneLoginScreen(
             .padding(16.dp)
     ) {
         Column(
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier.align(Alignment.Center).imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
@@ -62,10 +61,12 @@ fun PhoneLoginScreen(
 
             TextField(
                 value = phone,
-                onValueChange = {
-                    phone = it
-                    isValid = validatePhone(phone)
+                onValueChange = { newValue ->
+                    val digits = newValue.filter { it.isDigit() }
+                    phone = digits.take(11)
+                    isValid = authViewModel.validatePhone(phone)
                 },
+                visualTransformation = PhoneVisualTransformation(),
                 placeholder = { Text(stringResource(R.string.enter_the_phone)) },
                 singleLine = true,
                 modifier = Modifier
