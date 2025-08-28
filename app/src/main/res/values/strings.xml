@@ -17,4 +17,5 @@
     <string name="sign_in">Войти</string>
     <string name="enter_code_from_sms">Введите код из SMS</string>
     <string name="com_example_weatherapptest">com.example.weatherapptest</string>
+    <string name="label_days">%1$d дней</string>
 </resources>

@@ -19,10 +19,8 @@ import com.example.weatherapptest.domain.usecases.GetUserCitiesUseCase
 import com.example.weatherapptest.domain.usecases.SearchCityUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -36,17 +34,9 @@ class MainViewModel @Inject constructor(
     private val addUserCityUseCase: AddUserCityUseCase
 ) : ViewModel() {
 
-    val userCities: Flow<List<CityEntity>> = getUserCitiesUseCase()
+    var citiesWeather by mutableStateOf<List<CurrentWeather>>(emptyList())
+        private set
 
-    val citiesWeather: Flow<Resource<List<CurrentWeather>>> = getCitiesWeatherFlow()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Lazily,
-            initialValue = Resource.Loading()
-        )
-
-
-    val cityWeatherByName: Flow<CurrentWeather> = getCityWeatherByName("")
 
     var loading by mutableStateOf(false)
         private set
@@ -54,36 +44,38 @@ class MainViewModel @Inject constructor(
     var error by mutableStateOf<String?>(null)
         private set
 
-    val forecast: Flow<Forecast?>
-        get() = getForecastByCity(cityName = "", lat = 0.0, lon = 0.0)
-
-    val citySuggestions: Flow<List<City>>
-        get() = searchCities(query = "")
+    var suggestions by mutableStateOf<List<City>>(emptyList())
+        private set
 
 
     private val baseCities = listOf("Moscow", "New York")
 
-    fun getCitiesWeatherFlow(): Flow<Resource<List<CurrentWeather>>> = flow {
-        emit(Resource.Loading())
 
-        val citiesList = userCities.first()
-        val allCities = baseCities + citiesList.map { it.name }
-
-        val citiesInfo = mutableListOf<CurrentWeather>()
-        for (city in allCities) {
-            when (val result = getCurrentWeatherUseCase(city)) {
-                is Resource.Success -> citiesInfo.add(result.data)
-                is Resource.Error -> {
-                    emit(Resource.Error(result.message))
-                    return@flow
-                }
-                is Resource.Loading<*> -> emit(Resource.Loading())
-            }
+    init {
+        viewModelScope.launch {
+            loadAllCities()
         }
-
-        emit(Resource.Success(citiesInfo))
     }
 
+    private suspend fun loadAllCities() {
+        loading = true
+        val userCitiesList = getUserCitiesUseCase().first()
+        val allCities = baseCities + userCitiesList.map { it.name }
+        val loadedCities = mutableListOf<CurrentWeather>()
+
+        for (city in allCities) {
+            when (val result = getCurrentWeatherUseCase(city)) {
+                is Resource.Success -> loadedCities.add(result.data)
+                is Resource.Error -> {
+                    error = result.message
+                }
+
+                is Resource.Loading<*> -> {}
+            }
+        }
+        citiesWeather = loadedCities
+        loading = false
+    }
 
 
     fun getCityWeatherByName(cityName: String): Flow<CurrentWeather> = flow {
@@ -93,6 +85,7 @@ class MainViewModel @Inject constructor(
             is Resource.Error -> {
                 error = result.message
             }
+
             is Resource.Loading<*> -> {
                 loading = true
             }
@@ -107,10 +100,11 @@ class MainViewModel @Inject constructor(
                 Log.d("LOG", "City loaded -> ${result.data}")
                 emit(result.data)
             }
+
             is Resource.Error -> {
                 Log.d("LOG", "Forecast error -> ${result.message}")
-                error = result.message
             }
+
             else -> {
                 Log.d("LOG", "Forecast unknown result -> $result")
             }
@@ -118,27 +112,38 @@ class MainViewModel @Inject constructor(
     }
 
 
-    fun searchCities(query: String): Flow<List<City>> = flow {
-        if (query.isNotBlank()) {
-            when (val result = searchCityUseCase(query)) {
-                is Resource.Success -> emit(result.data)
-                is Resource.Error -> {
-                    error = result.message
-                    emit(emptyList())
-                }
-                is Resource.Loading -> loading = true
-            }
-        } else {
-            emit(emptyList())
-        }
-    }
-
-
-    fun addCity(city: String) {
+    fun searchCities(query: String) {
         viewModelScope.launch {
-            addUserCityUseCase(city)
-            getCitiesWeatherFlow()
+            if (query.isNotBlank()) {
+                when (val result = searchCityUseCase(query)) {
+                    is Resource.Success -> {
+                        suggestions = result.data
+                    }
+
+                    is Resource.Error -> {
+                        suggestions = emptyList()
+                    }
+
+                    is Resource.Loading -> {}
+                }
+            } else {
+                suggestions = emptyList()
+            }
         }
     }
 
+
+    fun addCity(newCity: String) {
+        viewModelScope.launch {
+            addUserCityUseCase(newCity)
+
+            when (val result = getCurrentWeatherUseCase(newCity)) {
+                is Resource.Success -> {
+                    citiesWeather = citiesWeather + result.data
+                }
+                is Resource.Error -> error = result.message
+                is Resource.Loading<*> -> {}
+            }
+        }
+    }
 }
