@@ -25,12 +25,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -47,23 +46,25 @@ import kotlin.math.roundToInt
 
 @Composable
 fun CityDetailsScreen(
-    cityName: String,
     viewModel: MainViewModel = hiltViewModel(),
     navController: NavController
 ) {
     var daysToShow by remember { mutableIntStateOf(7) }
-    var city by remember { mutableStateOf<CurrentWeather?>(null) }
-    var forecast by remember { mutableStateOf<List<DailyForecast>?>(null) }
 
-    val daysNumbers = listOf(3, 7)
+    val city = navController.previousBackStackEntry
+        ?.savedStateHandle
+        ?.get<CurrentWeather>("city")
 
-    LaunchedEffect(cityName) {
-        viewModel.getCityWeatherByName(cityName).collect { weather ->
-            city = weather
-            viewModel.getForecastByCity(cityName, weather.coord.lat, weather.coord.lon)
-                .collect { forecast = it?.daily }
-        }
+
+    val weather by viewModel.weather
+    val forecast by viewModel.forecast
+
+    LaunchedEffect(Unit) {
+        viewModel.getCityWeatherByName(city?.cityName ?: "NaN")
+        viewModel.getForecastByCity(city?.cityName ?: "", city?.coord?.lat, city?.coord?.lon)
+
     }
+
 
     Box(
         modifier = Modifier
@@ -75,21 +76,21 @@ fun CityDetailsScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             CityHeader(
-                cityName = cityName,
-                temperature = city?.temperature?.roundToInt(),
-                description = city?.description
+                cityName = city?.cityName.toString(),
+                temperature = weather?.temperature?.roundToInt(),
+                description = weather?.description
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            DaysSelector(daysNumbers, daysToShow) { daysToShow = it }
+            DaysSelector(viewModel.daysNumbers, daysToShow) { daysToShow = it }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(forecast?.take(daysToShow) ?: emptyList()) { day ->
+                items(forecast?.daily?.take(daysToShow) ?: emptyList()) { day ->
                     DailyForecastItem(day)
                 }
             }
@@ -152,7 +153,7 @@ fun DailyForecastItem(day: DailyForecast) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFE0F7FA))
+                .background(colorResource(id = R.color.forecast_item))
                 .padding(12.dp)
         ) {
             Row(

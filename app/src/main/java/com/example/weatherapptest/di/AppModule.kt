@@ -1,7 +1,6 @@
 package com.example.weatherapptest.di
 
 import android.content.Context
-import androidx.room.Room
 import com.example.weatherapptest.data.db.AppDatabase
 import com.example.weatherapptest.data.db.CitiesDao
 import dagger.Module
@@ -18,7 +17,7 @@ class AppModule {
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        return AppDatabase.getInstance(context)
+        return AppDatabase(context)
     }
 
     @Provides

@@ -12,7 +12,7 @@ class WeatherRepositoryImpl : WeatherRepository {
         return dto.toDomain()
     }
 
-    override suspend fun getForecast(cityName: String, lat: Double, lon: Double): Forecast {
+    override suspend fun getForecast(cityName: String, lat: Double?, lon: Double?): Forecast {
         val dto = retrofit.getForecast(lat, lon)
         return dto.toDomain(cityName)
     }

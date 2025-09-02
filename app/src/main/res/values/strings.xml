@@ -13,7 +13,7 @@
     <string name="user_icon">User Icon</string>
     <string name="sign_in_by_phone">Вход по номеру телефона</string>
     <string name="enter_the_phone">Введите номер</string>
-    <string name="enter_correct_phone">Введите корректный номер в формате +7XXXXXXXXXX</string>
+    <string name="enter_correct_phone">Введите корректный номер</string>
     <string name="sign_in">Войти</string>
     <string name="enter_code_from_sms">Введите код из SMS</string>
     <string name="com_example_weatherapptest">com.example.weatherapptest</string>

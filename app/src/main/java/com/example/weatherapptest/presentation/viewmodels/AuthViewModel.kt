@@ -26,7 +26,6 @@ class AuthViewModel @Inject constructor(
     private val accountManager = AccountManager.get(context)
     private val accountType = context.getString(R.string.com_example_weatherapptest)
 
-    var phoneAdd: String = ""
 
     fun checkAccount(): Flow<AuthState> = flow {
         val accounts = accountManager.getAccountsByType(accountType)
@@ -34,20 +33,16 @@ class AuthViewModel @Inject constructor(
         else emit(AuthState.NoAccount)
     }
 
-    fun addPhoneNumber(phone: String): Flow<AuthState> = flow {
-        phoneAdd = phone
-        emit(AuthState.WaitingOtp)
-    }
 
-    fun verifyOtp(otp: String): Flow<AuthState> = flow {
+    fun verifyOtp(phone: String, otp: String): Flow<AuthState> = flow {
         if (otp == SUPER_SECRET_CORRECT_CODE) {
-            val options = Bundle().apply { putString("phone", phoneAdd) }
+            val options = Bundle().apply { putString("phone", phone) }
             accountManager.addAccountExplicitly(
-                Account(phoneAdd, accountType),
+                Account(phone, accountType),
                 null,
                 options
             )
-            emit(AuthState.LoggedIn(phoneAdd))
+            emit(AuthState.LoggedIn(phone))
         } else {
             emit(AuthState.NoAccount)
         }
