@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,14 +31,26 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.example.weatherapptest.R
+import com.example.weatherapptest.domain.models.AuthState
+import com.example.weatherapptest.presentation.viewmodels.AuthViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun OtpScreen(
-    onOtpEntered: (String) -> Unit
+    phone: String,
+    navController: NavController,
+    authViewModel: AuthViewModel = hiltViewModel()
+
 ) {
     val focusRequester = remember { FocusRequester() }
     var otpValue: TextFieldValue by remember { mutableStateOf(TextFieldValue()) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
 
     Column(
         modifier = Modifier
@@ -70,7 +83,17 @@ fun OtpScreen(
                         }
                     }
                 }
-                if (newText.length == 4) onOtpEntered(otpValue.text)
+                if (newText.length == 4) {
+                    scope.launch {
+                        authViewModel.verifyOtp(phone, otpValue.text).collect { state ->
+                            if (state is AuthState.LoggedIn) {
+                                navController.navigate("weatherScreen") {
+                                    popUpTo("otpScreen") { inclusive = true }
+                                }
+                            }
+                        }
+                    }
+                }
 
 
             }, modifier = Modifier
@@ -79,7 +102,6 @@ fun OtpScreen(
                 .alpha(0f)
         )
 
-        LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
         Text(stringResource(R.string.enter_code_from_sms), fontSize = 20.sp)
         Spacer(modifier = Modifier.height(32.dp))

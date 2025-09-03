@@ -1,7 +1,7 @@
 package com.example.weatherapptest.data.mappers
 
 import com.example.weatherapptest.data.models.CityDto
-import com.example.weatherapptest.data.models.CurrentWeatherDto
+import com.example.weatherapptest.data.data.CurrentWeatherDto
 import com.example.weatherapptest.data.models.ForecastDto
 import com.example.weatherapptest.domain.models.City
 import com.example.weatherapptest.domain.models.CurrentWeather

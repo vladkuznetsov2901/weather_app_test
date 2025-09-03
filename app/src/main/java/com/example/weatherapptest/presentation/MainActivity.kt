@@ -12,9 +12,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.weatherapptest.domain.models.AuthState
 import com.example.weatherapptest.presentation.screens.CityDetailsScreen
 import com.example.weatherapptest.presentation.screens.OtpScreen
@@ -23,7 +25,6 @@ import com.example.weatherapptest.presentation.screens.WeatherScreen
 import com.example.weatherapptest.presentation.viewmodels.AuthViewModel
 import com.example.weatherapptest.ui.theme.WeatherAppTestTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 
 @AndroidEntryPoint
@@ -48,58 +49,41 @@ class MainActivity : ComponentActivity() {
 fun AppContent(authViewModel: AuthViewModel = hiltViewModel()) {
 
     val navController = rememberNavController()
-    val scope = rememberCoroutineScope()
 
-
-    LaunchedEffect(authViewModel.phoneAdd) {
-        authViewModel.checkAccount()
-            .collect { authState ->
-                when (authState) {
-                    is AuthState.NoAccount -> navController.navigate("phoneLogin") { popUpTo(0) }
-                    is AuthState.LoggedIn -> navController.navigate("weatherScreen") { popUpTo(0) }
-                    is AuthState.WaitingOtp -> navController.navigate("otpScreen") { popUpTo(0) }
+    LaunchedEffect(Unit) {
+        authViewModel.checkAccount().collect { authState ->
+            when (authState) {
+                is AuthState.NoAccount -> navController.navigate("phoneLogin") { popUpTo(0) }
+                is AuthState.LoggedIn -> navController.navigate("weatherScreen") { popUpTo(0) }
+                is AuthState.WaitingOtp -> navController.navigate("otpScreen/${authState.phone}") {
+                    popUpTo(
+                        0
+                    )
                 }
             }
+        }
     }
+
+
 
     NavHost(navController = navController, startDestination = "splashScreen") {
         composable("splashScreen") {}
         composable("phoneLogin") {
-            PhoneLoginScreen(
-                onLoginClick = { phone ->
-                    scope.launch {
-                        authViewModel.addPhoneNumber(phone).collect { state ->
-                            if (state is AuthState.WaitingOtp) {
-                                navController.navigate("otpScreen") { popUpTo(0) }
-                            }
-                        }
-                    }
-                }
-            )
+            PhoneLoginScreen(navController = navController)
         }
-
-
-        composable("otpScreen") {
-            OtpScreen(
-                onOtpEntered = { otp ->
-                    scope.launch {
-                        authViewModel.verifyOtp(otp).collect { state ->
-                            if (state is AuthState.LoggedIn) {
-                                navController.navigate("weatherScreen") { popUpTo(0) }
-                            }
-                        }
-                    }
-                }
-            )
+        composable(
+            route = "otpScreen/{phone}",
+            arguments = listOf(navArgument("phone") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val phone = backStackEntry.arguments?.getString("phone") ?: ""
+            OtpScreen(phone = phone, navController = navController)
         }
-
         composable("weatherScreen") {
             WeatherScreen(navController)
         }
 
-        composable("cityDetails/{cityName}") { backStackEntry ->
-            val cityName = backStackEntry.arguments?.getString("cityName") ?: ""
-            CityDetailsScreen(cityName = cityName, navController = navController)
+        composable("cityDetails") { backStackEntry ->
+            CityDetailsScreen(navController = navController)
         }
     }
 }

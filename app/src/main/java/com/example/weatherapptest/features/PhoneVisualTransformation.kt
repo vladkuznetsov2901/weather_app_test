@@ -1,51 +1,89 @@
 package com.example.weatherapptest.features
 
+import android.telephony.PhoneNumberUtils
+import android.text.Selection
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
+import com.google.i18n.phonenumbers.PhoneNumberUtil
+import java.util.Locale
 
-class PhoneVisualTransformation : VisualTransformation {
+class PhoneNumberVisualTransformation(
+    countryCode: String = Locale.getDefault().country
+) : VisualTransformation {
+
+    private val phoneNumberFormatter = PhoneNumberUtil.getInstance().getAsYouTypeFormatter(countryCode)
+
     override fun filter(text: AnnotatedString): TransformedText {
-        val digits = text.text.filter { it.isDigit() }
-        val formatted = buildString {
-            if (digits.isNotEmpty()) append("+7 ")
-            if (digits.length > 1) {
-                append("(")
-                append(digits.substring(1, minOf(4, digits.length)))
-            }
-            if (digits.length >= 4) {
-                append(") ")
-                append(digits.substring(4, minOf(7, digits.length)))
-            }
-            if (digits.length >= 7) {
-                append("-")
-                append(digits.substring(7, minOf(9, digits.length)))
-            }
-            if (digits.length >= 9) {
-                append("-")
-                append(digits.substring(9, minOf(11, digits.length)))
-            }
-        }
+        val transformation = reformat(text, Selection.getSelectionEnd(text))
 
-        val offsetMapping = object : OffsetMapping {
-            override fun originalToTransformed(offset: Int): Int {
-                return when {
-                    offset <= 0 -> 0
-                    offset == 1 -> 3
-                    offset in 2..4 -> offset + 3
-                    offset in 5..7 -> offset + 5
-                    offset in 8..9 -> offset + 6
-                    offset >= 10 -> minOf(formatted.length, offset + 7)
-                    else -> formatted.length
+        return TransformedText(
+            AnnotatedString(transformation.formatted.orEmpty()),
+            object : OffsetMapping {
+                override fun originalToTransformed(offset: Int): Int {
+                    return transformation.originalToTransformed[offset.coerceIn(transformation.originalToTransformed.indices)]
+                }
+                override fun transformedToOriginal(offset: Int): Int {
+                    return transformation.transformedToOriginal[offset.coerceIn(transformation.transformedToOriginal.indices)]
                 }
             }
+        )
+    }
 
-            override fun transformedToOriginal(offset: Int): Int {
-                return digits.length.coerceAtMost(offset)
+    private fun reformat(s: CharSequence, cursor: Int): Transformation {
+        phoneNumberFormatter.clear()
+
+        val curIndex = cursor - 1
+        var formatted: String? = null
+        var lastNonSeparator = 0.toChar()
+        var hasCursor = false
+
+        s.forEachIndexed { index, char ->
+            if (PhoneNumberUtils.isNonSeparator(char)) {
+                if (lastNonSeparator.code != 0) {
+                    formatted = getFormattedNumber(lastNonSeparator, hasCursor)
+                    hasCursor = false
+                }
+                lastNonSeparator = char
+            }
+            if (index == curIndex) {
+                hasCursor = true
             }
         }
 
-        return TransformedText(AnnotatedString(formatted), offsetMapping)
+        if (lastNonSeparator.code != 0) {
+            formatted = getFormattedNumber(lastNonSeparator, hasCursor)
+        }
+        val originalToTransformed = mutableListOf<Int>()
+        val transformedToOriginal = mutableListOf<Int>()
+        var specialCharsCount = 0
+        formatted?.forEachIndexed { index, char ->
+            if (!PhoneNumberUtils.isNonSeparator(char)) {
+                specialCharsCount++
+                transformedToOriginal.add(index - specialCharsCount)
+            } else {
+                originalToTransformed.add(index)
+                transformedToOriginal.add(index - specialCharsCount)
+            }
+        }
+        originalToTransformed.add(originalToTransformed.maxOrNull()?.plus(1) ?: 0)
+        transformedToOriginal.add(transformedToOriginal.maxOrNull()?.plus(1) ?: 0)
+
+        return Transformation(formatted, originalToTransformed, transformedToOriginal)
     }
+
+    private fun getFormattedNumber(lastNonSeparator: Char, hasCursor: Boolean): String? {
+        return if (hasCursor) {
+            phoneNumberFormatter.inputDigitAndRememberPosition(lastNonSeparator)
+        } else {
+            phoneNumberFormatter.inputDigit(lastNonSeparator)
+        }
+    }
+
+    private data class Transformation(
+        val formatted: String?,
+        val originalToTransformed: List<Int>,
+        val transformedToOriginal: List<Int>
+    )
 }

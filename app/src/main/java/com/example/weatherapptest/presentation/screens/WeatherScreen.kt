@@ -19,6 +19,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,13 @@ fun WeatherScreen(
     var query by remember { mutableStateOf("") }
     var showSuggestions by remember { mutableStateOf(false) }
 
+    val cities by remember(viewModel) {
+        mutableStateOf(viewModel.citiesWeather)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadAllCitiesIfNeeded()
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -102,7 +110,7 @@ fun WeatherScreen(
                             newCity = ""
                         }
                     },
-                    modifier = Modifier.height(56.dp)
+                    modifier = Modifier.height(56.dp).align(Alignment.Top)
                 ) {
                     Text(stringResource(R.string.plus))
                 }
@@ -111,11 +119,16 @@ fun WeatherScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
             if (viewModel.loading) {
-                CircularProgressIndicator()
+                Box(Modifier.fillMaxSize()) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
             } else {
                 LazyColumn(Modifier.fillMaxSize()) {
-                    items(viewModel.citiesWeather) { city ->
-                        CityItem(city) {navController.navigate("cityDetails/${city.cityName}")}
+                    items(cities) { city ->
+                        CityItem(city) {
+                            navController.currentBackStackEntry?.savedStateHandle?.set("city", city)
+                            navController.navigate("cityDetails")
+                        }
                         HorizontalDivider(
                             thickness = 1.dp,
                             color = Color.Gray
