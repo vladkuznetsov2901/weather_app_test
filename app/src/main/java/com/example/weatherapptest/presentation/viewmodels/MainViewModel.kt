@@ -37,11 +37,11 @@ class MainViewModel @Inject constructor(
     private val _citiesWeather = mutableStateListOf<CurrentWeather>()
     val citiesWeather: List<CurrentWeather> get() = _citiesWeather
 
-    private val _weather = mutableStateOf<CurrentWeather?>(null)
-    val weather: State<CurrentWeather?> get() = _weather
+    private val _weather = mutableStateOf<Resource<CurrentWeather>?>(null)
+    val weather: State<Resource<CurrentWeather>?> get() = _weather
 
-    private val _forecast = mutableStateOf<Forecast?>(null)
-    val forecast: State<Forecast?> get() = _forecast
+    private val _forecast = mutableStateOf<Resource<Forecast>?>(null)
+    val forecast: State<Resource<Forecast>?> get() = _forecast
 
     var loading by mutableStateOf(false)
         private set
@@ -103,15 +103,17 @@ class MainViewModel @Inject constructor(
             getCurrentWeatherUseCase(cityName).collect { result ->
                 when (result) {
                     is Resource.Success -> {
-                        _weather.value = result.data
+                        _weather.value = Resource.Success(result.data)
                         Log.d("WeatherViewModel", "Weather loaded successfully: ${result.data}")
                     }
 
                     is Resource.Error -> {
+                        _weather.value = Resource.Error(result.message)
                         Log.d("WeatherViewModel", "Weather loading error: ${result.message}")
                     }
 
                     is Resource.Loading -> {
+                        _weather.value = Resource.Loading()
                         Log.d("WeatherViewModel", "Weather loading in progress...")
                     }
                 }
@@ -125,15 +127,17 @@ class MainViewModel @Inject constructor(
             getForecastUseCase(cityName, lat, lon).collect { result ->
                 when (result) {
                     is Resource.Success -> {
-                        _forecast.value = result.data
+                        _forecast.value = Resource.Success(result.data)
                         Log.d("WeatherViewModel", "Forecast loaded successfully: ${result.data}")
                     }
 
                     is Resource.Error -> {
+                        _forecast.value = Resource.Error(result.message)
                         Log.d("WeatherViewModel", "Forecast loading error: ${result.message}")
                     }
 
                     is Resource.Loading -> {
+                        _forecast.value = Resource.Loading()
                         Log.d("WeatherViewModel", "Forecast loading in progress...")
                     }
                 }

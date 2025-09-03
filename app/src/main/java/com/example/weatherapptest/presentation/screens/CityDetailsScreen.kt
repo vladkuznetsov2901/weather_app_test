@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -39,6 +41,7 @@ import androidx.navigation.NavController
 import com.example.weatherapptest.R
 import com.example.weatherapptest.domain.models.CurrentWeather
 import com.example.weatherapptest.domain.models.DailyForecast
+import com.example.weatherapptest.domain.models.Resource
 import com.example.weatherapptest.presentation.viewmodels.MainViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -56,14 +59,16 @@ fun CityDetailsScreen(
         ?.get<CurrentWeather>("city")
 
 
-    val weather by viewModel.weather
-    val forecast by viewModel.forecast
+    val weatherState by viewModel.weather
+    val forecastState by viewModel.forecast
 
-    LaunchedEffect(Unit) {
-        viewModel.getCityWeatherByName(city?.cityName ?: "NaN")
-        viewModel.getForecastByCity(city?.cityName ?: "", city?.coord?.lat, city?.coord?.lon)
-
+    LaunchedEffect(city) {
+        city?.let {
+            viewModel.getCityWeatherByName(it.cityName)
+            viewModel.getForecastByCity(it.cityName, it.coord.lat, it.coord.lon)
+        }
     }
+
 
 
     Box(
@@ -75,11 +80,43 @@ fun CityDetailsScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            CityHeader(
-                cityName = city?.cityName.toString(),
-                temperature = weather?.temperature?.roundToInt(),
-                description = weather?.description
-            )
+            when (weatherState) {
+                is Resource.Loading -> {
+                    CityHeader(
+                        cityName = city?.cityName.toString(),
+                        null, null
+                    )
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                }
+
+                is Resource.Error -> {
+                    val message = (weatherState as Resource.Error).message
+                    Text(
+                        text = "Ошибка: $message",
+                        color = Color.Red,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                    city?.let {
+                        viewModel.getCityWeatherByName(it.cityName)
+                    }
+
+                }
+
+                is Resource.Success -> {
+                    val weather = (weatherState as Resource.Success).data
+                    CityHeader(
+                        cityName = city?.cityName.toString(),
+                        temperature = weather.temperature.roundToInt(),
+                        description = weather.description
+                    )
+                }
+
+                null -> Text(
+                    text = "Нет данных",
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -87,12 +124,43 @@ fun CityDetailsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(forecast?.daily?.take(daysToShow) ?: emptyList()) { day ->
-                    DailyForecastItem(day)
+            when (forecastState) {
+                is Resource.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
+
+                is Resource.Error -> {
+                    val message = (forecastState as Resource.Error).message
+                    Text(
+                        text = "Ошибка: $message",
+                        color = Color.Red,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                    city?.let {
+                        viewModel.getForecastByCity(
+                            it.cityName,
+                            city.coord.lat,
+                            city.coord.lon
+                        )
+                    }
+
+                }
+
+                is Resource.Success -> {
+                    val forecast = (forecastState as Resource.Success).data
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(forecast.daily.take(daysToShow)) { day ->
+                            DailyForecastItem(day)
+                        }
+                    }
+                }
+
+                null -> Text(
+                    text = "Нет данных",
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
 
         }

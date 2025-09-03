@@ -110,7 +110,7 @@ fun WeatherScreen(
                             newCity = ""
                         }
                     },
-                    modifier = Modifier.height(56.dp)
+                    modifier = Modifier.height(56.dp).align(Alignment.Top)
                 ) {
                     Text(stringResource(R.string.plus))
                 }
@@ -119,7 +119,9 @@ fun WeatherScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
             if (viewModel.loading) {
-                CircularProgressIndicator()
+                Box(Modifier.fillMaxSize()) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
             } else {
                 LazyColumn(Modifier.fillMaxSize()) {
                     items(cities) { city ->
